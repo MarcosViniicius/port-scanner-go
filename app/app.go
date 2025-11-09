@@ -86,7 +86,7 @@ func scanAllPorts (c *cli.Context){
         3:  {Port: 23, Type: "tcp", Service: "telnet"},
         4:  {Port: 25, Type: "tcp", Service: "smtp"},
         5:  {Port: 53, Type: "tcp", Service: "domain"},
-        6:  {Port: 67, Type: "udp", Service: "dhcp-server"}, // incluí udp comum
+        6:  {Port: 67, Type: "udp", Service: "dhcp-server"},
         7:  {Port: 68, Type: "udp", Service: "dhcp-client"},
         8:  {Port: 69, Type: "udp", Service: "tftp"},
         9:  {Port: 80, Type: "tcp", Service: "http"},
@@ -122,7 +122,6 @@ func scanAllPorts (c *cli.Context){
         39: {Port: 8080, Type: "tcp", Service: "http-proxy"},
         40: {Port: 8443, Type: "tcp", Service: "https-alt"},
         41: {Port: 9001, Type: "tcp", Service: "tor-orport"},
-        // Pode adicionar mais conforme necessidade
     }
 
 	var timeout time.Duration= 1 * time.Second
@@ -131,20 +130,16 @@ func scanAllPorts (c *cli.Context){
 	
 	fmt.Printf("\nNetwork Address: %s\nconnection type: %s\n",address, connectionType)
 
-	if connectionType == "tcp"{
-		for i := 0; i <= len(ports); i++ {
-			if ports[i].Type == "udp"{
-				delete(ports,i)
-			}
-			fmt.Println(ports[i].Port,ports[i].Type)
+	for key, port := range ports {
+		if connectionType == "tcp" && port.Type == "udp" {
+			delete(ports, key)
+			continue
 		}
-	} else {
-		for i := 0; i <= len(ports); i++ {
-			if ports[i].Type == "tcp"{
-				delete(ports,i)
-			}
-			fmt.Println(ports[i].Port,ports[i].Type)
+		if connectionType == "udp" && port.Type == "tcp" {
+			delete(ports, key)
+			continue
 		}
+		// fmt.Println(port.Port, port.Type)
 	}
 
 	
