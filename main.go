@@ -3,7 +3,8 @@ package main
 import (
 	"log"
 	"os"
-	"port-scanner/app"
+
+	"github.com/MarcosViniicius/port-scanner-go/app"
 )
 
 func main() {
