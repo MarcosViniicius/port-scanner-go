@@ -5,11 +5,22 @@ import (
 	"os"
 
 	"github.com/MarcosViniicius/port-scanner-go/app"
+	"github.com/MarcosViniicius/port-scanner-go/scanner"
 )
 
 func main() {
-	aplication := app.CliGen()
-	if erro := aplication.Run(os.Args); erro != nil {
-		log.Fatal(erro)
+	application := app.CliGen()
+
+	for i := range application.Commands {
+		switch application.Commands[i].Name {
+		case "scanport":
+			application.Commands[i].Action = scanner.ScanPort
+		case "scanports":
+			application.Commands[i].Action = scanner.ScanAllPorts
+		}
+	}
+
+	if err := application.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
 }

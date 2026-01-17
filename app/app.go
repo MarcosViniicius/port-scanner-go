@@ -4,11 +4,10 @@ import (
 	"github.com/urfave/cli"
 )
 
-
 type PortInfo struct {
-	Port 	int
-    Type    string
-    Service string
+	Port    int
+	Type    string
+	Service string
 }
 
 func CliGen() *cli.App {
@@ -25,7 +24,7 @@ func CliGen() *cli.App {
 			Name:  "port",
 			Value: "443",
 			Usage: "Port ranges (ex: 80, 20-100 or 200,300)",
-    	},
+		},
 		cli.StringFlag{
 			Name:  "type",
 			Value: "tcp",
@@ -38,13 +37,13 @@ func CliGen() *cli.App {
 			Name:   "scanport",
 			Usage:  "Scan ports with Address",
 			Flags:  flags,
-			Action: scanPort,
+			Action: nil,
 		},
 		{
 			Name:   "scanports",
 			Usage:  "Scan all ports with Address",
 			Flags:  flags,
-			Action: scanAllPorts,
+			Action: nil,
 		},
 	}
 	return app

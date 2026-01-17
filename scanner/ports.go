@@ -1,6 +1,10 @@
-package app
+package scanner
 
-var CommonPorts = map[int]PortInfo{
+import (
+	"github.com/MarcosViniicius/port-scanner-go/app"
+)
+
+var CommonPorts = map[int]app.PortInfo{
 	0:  {Port: 20, Type: "tcp", Service: "ftp-data"},
 	1:  {Port: 21, Type: "tcp", Service: "ftp"},
 	2:  {Port: 22, Type: "tcp", Service: "ssh"},
