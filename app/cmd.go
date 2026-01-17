@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,78 +13,61 @@ import (
 )
 
 // Scan individual ports and ranges (e.g., 80, 10-20, 22,80,443)
-func scanPort(c *cli.Context){
-	timeout := 1 * time.Second
+func scanPort(c *cli.Context) {
+    timeout := 2 * time.Second
     address := c.String("host")
     port := c.String("port")
     connectionType := c.String("type")
+    
+    // Verify tcp or udp
+    if connectionType != "tcp" {
+        connectionType = "udp"
+    }
+    
+    ports := parsePortsFlexible(port)  // Single, range, multiple
+    
+    var wg sync.WaitGroup
+    results := make([]ScanResult, len(ports))
+    mu := sync.Mutex{}
+    
+    // Goroutines 
+    for i, p := range ports {
+        wg.Add(1)
+        go func(idx int, portNum int) {
+            defer wg.Done()
+            formatedAddress := fmt.Sprintf("%s:%d", address, portNum)
+            conn, err := dialScan(connectionType, formatedAddress, timeout)
+            if conn != nil {
+                conn.Close()
+            }
+            
+            mu.Lock()
+            results[idx] = ScanResult{Port: portNum, Open: err == nil}
+            mu.Unlock()
+        }(i, p)
+    }
+    wg.Wait()
+    
+    // Ordened output
+	fmt.Printf("\nNetwork Address: %s\nPort:%s\nconnection type: %s\n====================================================\n",address, port, connectionType)
 
-	// Verify tcp or udp port
-	if connectionType != "tcp"{
-		connectionType = "udp"
-	}
-
-	// Check if entry contains "-" to detect port ranges vs single ports
-	if strings.Contains(port, "-") {
-		var ports []int 
-
-		bounds := strings.Split(port, "-")
-		if len(bounds) == 2 {
-			start, _ := strconv.Atoi(bounds[0])
-			end, _ := strconv.Atoi(bounds[1])
-			for p := start; p <= end; p++ {
-				ports = append(ports, p)
-			}
-		}
-
-		var wg sync.WaitGroup
-			
-			for i:=0; i < len(ports); i++{
-
-				if ports[i] == 0 {
-					continue 
-				}
-				
-				wg.Add(1)
-				go func(PortInfo PortInfo){
-					defer wg.Done()
-					formatedAddress := fmt.Sprintf("%s:%d", address, ports[i])
-					conn,err := dialScan(connectionType, formatedAddress, timeout)
-					if err != nil {
-						fmt.Println("Port ",ports[i], "Is closed", ) // add var 'err' for debug
-						return
-					}
-					fmt.Println("Port ",ports[i], "Is open", ) // add var 'err' for debug
-					conn.Close()
-				}(PortInfo{})
-			}
-			wg.Wait() 
-	}
-
-	// If no "-", treat as single port
-
-	formatedAddres := address + ":"+port
-
-	conn, err := dialScan(connectionType, formatedAddres, timeout)
-	if err != nil {
-		fmt.Println("=====Porta is Closed=====\n", err)
-		fmt.Printf("\nNetwork Address: %s\nPort:%s\nconnection type: %s\n",address, port, connectionType)
-		return
-	}
-
-	defer conn.Close()
-	fmt.Println("=====Port is Open=====\n", err)
-	fmt.Printf("\nNetwork Address: %s\nPort:%s\nconnection type: %s\n",address, port, connectionType)
-	
-
+    for _, r := range results {
+        if r.Open {
+            fmt.Printf("Port %d Is open\n", r.Port)
+        } else {
+            fmt.Printf("Port %d Is closed\n", r.Port)
+        }
+    }
 }
+
+
 func scanAllPorts (c *cli.Context){
 
 	var timeout time.Duration= 1 * time.Second
     address := c.String("host")
     connectionType := c.String("type")
 	
-	fmt.Printf("\nNetwork Address: %s\nconnection type: %s\n",address, connectionType)
+	fmt.Printf("\nNetwork Address: %s\nconnection type: %s\n==================================================\n",address, connectionType)
 
 	for key, port := range CommonPorts {
 		if connectionType == "tcp" && port.Type == "udp" {
@@ -102,7 +86,7 @@ func scanAllPorts (c *cli.Context){
 	for i:=0; i < len(CommonPorts); i++{
 
 		if CommonPorts[i].Port == 0 {
-			continue // ignora portas 0
+			continue 
 		}
 		
 		wg.Add(1)
@@ -135,3 +119,32 @@ func dialScan(typeConn string, address string, duration time.Duration) (net.Conn
     return conn, err
 }
 
+
+// Helper: parse single, range "-", multiple ","
+func parsePortsFlexible(input string) []int {
+    var ports []int
+    parts := strings.Split(input, ",")
+    
+    for _, part := range parts {
+        part = strings.TrimSpace(part)
+        if strings.Contains(part, "-") {
+            bounds := strings.Split(part, "-")
+            if len(bounds) == 2 {
+                start, _ := strconv.Atoi(bounds[0])
+                end, _ := strconv.Atoi(bounds[1])
+                for p := start; p <= end; p++ {
+                    ports = append(ports, p)
+                }
+            }
+        } else if p, err := strconv.Atoi(part); err == nil {
+            ports = append(ports, p)
+        }
+    }
+    sort.Ints(ports)
+    return ports
+}
+
+type ScanResult struct {
+    Port int
+    Open bool
+}

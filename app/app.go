@@ -24,7 +24,7 @@ func CliGen() *cli.App {
 		cli.StringFlag{
 			Name:  "port",
 			Value: "443",
-			Usage: "Port ranges (ex: 80 ou 20-100)",
+			Usage: "Port ranges (ex: 80, 20-100 or 200,300)",
     	},
 		cli.StringFlag{
 			Name:  "type",
